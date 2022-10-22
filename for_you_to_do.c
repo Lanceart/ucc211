@@ -26,13 +26,13 @@ int mydgetrf(double *A, int *ipiv, int n)
 {
     /* add your code here */
     int i,j,k,maxpo,temp_int;
-    double temp = (double *)malloc(sizeof(double) * n);;
+    double * temp = (double *)malloc(sizeof(double) * n);
     for(i=0;i<n;i++){
         maxpo = i;
-        double max_double = fabs(A[n*j]+i);
+        double max_double = fabs(A[n*j+i]);
         for(j=i+1;j<n;j++){
             int index_s = j*n+i;
-            if(A[index_s] > max_double){maxpo =j;max_double=A[index_s];}
+            if(fabs(A[index_s]) > max_double){maxpo =j;max_double=fabs(A[index_s]);}
             
         }
 
