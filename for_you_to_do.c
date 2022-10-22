@@ -25,32 +25,44 @@
 int mydgetrf(double *A, int *ipiv, int n) 
 {
     /* add your code here */
-    int i,j,k,maxpo,temp_int;
-    double * temp = (double *)malloc(sizeof(double) * n);
-    for(i=0;i<n;i++){
-        maxpo = i;
-        double max_double = fabs(A[n*j+i]);
-        for(j=i+1;j<n;j++){
-            int index_s = j*n+i;
-            if(fabs(A[index_s]) > max_double){maxpo =j;max_double=fabs(A[index_s]);}
-            
+    int i, j, k, max_index, tmp2;
+    double max, tmp1;
+    // used for swapping rows
+    double * tmp_row = (double *)malloc(sizeof(double) * n);
+    
+    for (i = 0; i < n; i++)
+    {
+        max_index = i;
+        max = fabs(A[i * n + i]);
+        for (j = i + 1; j < n; j++)
+        {
+            tmp1 = fabs(A[j * n + i]);
+            if (max < tmp1)
+            {
+                max_index = j;
+                max = tmp1;
+            }
         }
-
-        if (max_double == 0){
+        
+        // if the matrix is singular
+        if (max == 0)
+        {
+	    perror("LU factorization failed: coefficient matrix is singular.\n");
             return -1;
         }
-
-        //condition except
-        if(maxpo != i){
-            temp_int = ipiv[i];
-            ipiv[i] = ipiv[maxpo];
-            ipiv[maxpo] = temp_int;
+           
+        if (max_index != i)
+        {	
+            tmp2 = ipiv[i];
+            ipiv[i] = ipiv[max_index];
+            ipiv[max_index] = tmp2;
 		
-            memcpy(temp, A + i * n, sizeof(double) * n);
-            memcpy(A + i * n, A + maxpo * n, sizeof(double) * n);
-            memcpy(A + maxpo * n, temp, sizeof(double) * n);
+            // swap rows of A
+            memcpy(tmp_row, A + i * n, sizeof(double) * n);
+            memcpy(A + i * n, A + max_index * n, sizeof(double) * n);
+            memcpy(A + max_index * n, tmp_row, sizeof(double) * n);
         }
-
+    
         for (j = i + 1; j < n; j++)
         {
             A[j * n + i] = A[j * n + i] / A[i * n + i];
@@ -60,7 +72,7 @@ int mydgetrf(double *A, int *ipiv, int n)
             }
         }
     }
-    free(temp);
+    free(tmp_row);
     return 0;
 }
 
