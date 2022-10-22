@@ -1,6 +1,6 @@
 #include "../include/for_you_to_do.h"
 
-
+#include <math.h>
 
 /**
  * 
@@ -20,11 +20,50 @@
  * 
  **/
 
+void navie_swap(){
+    memcpy();
+}
+
 
 int mydgetrf(double *A, int *ipiv, int n) 
 {
     /* add your code here */
+    int i,j,k,maxpo;
+    double temp = (double *)malloc(sizeof(double) * n);;
+    for(i=0;i<n;i++){
+        maxpo = i;
+        double max_double = fabs(A[n*j]+i);
+        for(j=i+1;j<n;j++){
+            int index_s = j*n+i;
+            if(A[index_s] > max_double){maxpo =j;max_double=A[index_s];}
+            
+        }
 
+        if (max_double == 0){
+            return -1;
+        }
+
+        //condition except
+        if(maxpo != i){
+            tmp2 = ipiv[i];
+            ipiv[i] = ipiv[maxpo];
+            ipiv[maxpo] = tmp2;
+		
+            memcpy(temp, A + i * n, sizeof(double) * n);
+            memcpy(A + i * n, A + maxpo * n, sizeof(double) * n);
+            memcpy(A + maxpo * n, temp, sizeof(double) * n);
+        }
+
+        for (j = i + 1; j < n; j++)
+        {
+            A[j * n + i] = A[j * n + i] / A[i * n + i];
+            for (k = i + 1; k < n; k++)
+            {
+                A[j * n + k] -= A[j * n + i] * A[i * n + k];
+            }
+        }
+    }
+    free(temp);
     return 0;
 }
 
@@ -57,7 +96,42 @@ int mydgetrf(double *A, int *ipiv, int n)
  **/
 void mydtrsv(char UPLO, double *A, double *B, int n, int *ipiv)
 {
-    /* add your code here */
+    int i, j;
+    double sum = 0;
+    double * tmp_B = (double *)malloc(sizeof(double) * n);
+    
+    if (UPLO == 'L')
+    {
+	   
+        for (i = 0; i < n; i++)
+        {
+            tmp_B[i] = B[ipiv[i]];
+        }
+        
+        for (i = 0; i < n; i++)
+        {
+            sum = tmp_B[i];
+            for (j = 0; j < i; j++)
+            {
+                sum -= B[j] * A[i * n + j];
+            }
+            B[i] = sum;
+        }
+    }
+    else if (UPLO == 'U')
+    {
+	// Ux = y, backward subtitution     
+        for (i = n - 1; i >= 0; i--)
+        {
+            sum = 0;
+            for (j = i + 1; j < n; j++)
+            {
+                sum += B[j] * A[i * n + j];
+            }
+            B[i] = (B[i] - sum) / A[i * n + i];
+        }
+    }
+    free(tmp_B);
     return;
 }
 
@@ -116,4 +190,3 @@ int mydgetrf_block(double *A, int *ipiv, int n, int b)
 {
     return 0;
 }
-
