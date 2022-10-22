@@ -20,15 +20,12 @@
  * 
  **/
 
-void navie_swap(){
-    memcpy();
-}
 
 
 int mydgetrf(double *A, int *ipiv, int n) 
 {
     /* add your code here */
-    int i,j,k,maxpo;
+    int i,j,k,maxpo,temp_int;
     double temp = (double *)malloc(sizeof(double) * n);;
     for(i=0;i<n;i++){
         maxpo = i;
@@ -45,9 +42,9 @@ int mydgetrf(double *A, int *ipiv, int n)
 
         //condition except
         if(maxpo != i){
-            tmp2 = ipiv[i];
+            temp_int = ipiv[i];
             ipiv[i] = ipiv[maxpo];
-            ipiv[maxpo] = tmp2;
+            ipiv[maxpo] = temp_int;
 		
             memcpy(temp, A + i * n, sizeof(double) * n);
             memcpy(A + i * n, A + maxpo * n, sizeof(double) * n);
