@@ -63,8 +63,8 @@ int mydgetrf(double *A, int *ipiv, int n)
         */
             //A + max_index * n
             memcpy(temps_double, A + max_index * n, sizeof(double) * n);
-            memcpy(A + max_index * n, A + A + i * n, sizeof(double) * n);
-            memcpy(A + A + i * n, temps_double, sizeof(double) * n);
+            memcpy(A + max_index * n,   A + i * n, sizeof(double) * n);
+            memcpy(A +  i * n, temps_double, sizeof(double) * n);
         }
     
         for (j = i + 1; j < n; j++)
