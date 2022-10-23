@@ -163,30 +163,64 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
     /* In fact this function won't be directly called in the tester code, so you can modify the declaration (parameter list) of mydgemm() if needed. 
     /* you may copy the code from the optimal() function or any of the other functions in your lab1 code (optimized code recommended).*/
     /* add your code here */
-    	int  iB, jB , kB;
-        for( k = 0;k < maty ; k += b)
-                for( i = 0;i < matx;i += b)
-                        for( j = 0;j < matx ;j += b)
-                        {
-                                for( kB = k;kB < k + b && kB < maty;kB += 2)
-                                        for( iB = i;iB <i + b && iB < matx;iB += 2)
-                                        {
-                                                register int regA00 = iB *n + kB;
-                                                register int regA10 = regA00 + n;
-                                                register double a00 = A[regA00],a01 = A[regA00 + 1],a10 = A[regA10],a11 = A[regA10 + 1];
-                                                for(jB = j;jB < j + b && jB < matx;jB += 2)
-                                                {
-                                                        register int regB00 = kB * n + jB,regC00 = iB * n + jB;
-                                                        register int regB10 = regB00 + n,regC10 = regC00 + n;
-                                                        register double b00 = B[regB00],b01 = B[regB00 + 1],b10 = B[regB10],b11 = B[regB10 + 1];
-                                                        register double c00 = C[regC00],c01 = C[regC00 + 1],c10 = C[regC10],c11 = C[regC10 + 1];
-                                                        C[regC00] -= a00 * b00 + a01 * b10;
-                                                        C[regC00+1] -= a00 * b01 + a01 * b11;
-                                                        C[regC10] -= a10 * b00 + a11 * b10;
-                                                        C[regC10+1] -= a10 * b01 + a11 * b11;
-                                                }
-                                        }
-                        }
+    register int i1, j1, k1; 
+    // used for optimizing	  
+    register int in1, in2, in3, j2, j3, kn;	
+    register int n1 = i + b > n ? n : i + b;
+    register int n2 = j + b > n ? n : j + b;
+    register int n3 = k + b > n ? n : k + b;
+
+    for (i1 = i; i1 < n1; i1 += 3)
+    {
+        for (j1 = j; j1 < n2; j1 += 3)
+        {
+	    in1 = i1 * n;
+	    in2 = (i1 + 1) * n;
+	    in3 = (i1 + 2) * n;
+	    j2 = j1 + 1;
+	    j3 = j1 + 2;	
+            register double C_0_0 = C[in1 + j1];
+            register double C_0_1 = C[in1 + j2];
+            register double C_0_2 = C[in1 + j3];
+            register double C_1_0 = C[in2 + j1];
+            register double C_1_1 = C[in2 + j2];
+            register double C_1_2 = C[in2 + j3];
+            register double C_2_0 = C[in3 + j1];
+            register double C_2_1 = C[in3 + j2];
+            register double C_2_2 = C[in3 + j3];
+		
+	    for (k1 = k; k1 < n3; k1++)
+            {
+		kn = k1 * n + j1;    
+                register double A_0 = A[in1 + k1];
+                register double A_1 = A[in2 + k1];
+                register double A_2 = A[in3 + k1];
+                register double B_0 = B[kn];
+                register double B_1 = B[kn + 1];
+                register double B_2 = B[kn + 2];
+
+                C_0_0 -= A_0 * B_0;
+                C_0_1 -= A_0 * B_1;
+                C_0_2 -= A_0 * B_2;
+                C_1_0 -= A_1 * B_0;
+                C_1_1 -= A_1 * B_1;
+                C_1_2 -= A_1 * B_2;
+                C_2_0 -= A_2 * B_0;
+                C_2_1 -= A_2 * B_1;
+                C_2_2 -= A_2 * B_2;
+            }
+		
+            C[in1 + j1] = C_0_0;
+            C[in1 + j2] = C_0_1;
+            C[in1 + j3] = C_0_2;
+            C[in2 + j1] = C_1_0;
+            C[in2 + j2] = C_1_1;
+            C[in2 + j3] = C_1_2;    
+            C[in3 + j1] = C_2_0;
+            C[in3 + j2] = C_2_1;
+            C[in3 + j3] = C_2_2;
+    	}	
+    }
     return;
 }
 
@@ -220,73 +254,92 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
  **/
 int mydgetrf_block(double *A, int *ipiv, int n, int b) 
 {
-    int i, maxind, k, j, ib, end, temps, t;
-		double max;
-		for(ib = 0; ib < n - 1; ib += b)
-		{
-			/*Partial Pivoting*/
-			end = ((n-1) > (ib + b -1)) ? (ib + b - 1) : n-1;
-			//printf("end = %d\n",end);
-			for(i = ib; i <= end; i++)
-			{
-				maxind = i;
-				max = fabs(A[i*n+i]);
-				for(k = i+1; k < n; k++)
-				{
-					if(fabs(A[k * n + i]) > max)
-					{
-						maxind = k;
-						max = fabs(A[k * n + i]);
-					}
-				}
-				if(max == 0) return -1;
-				else if (maxind !=i)
-				{
+        register int ib, i, j, k, max_index, tmp2;
+    register double max, tmp1, sum;	
+    // used for optimizing
+    register int ib2, n1, in, maxn, jn; 	
+    register int size_n = sizeof(double) * n;
+    // used for swapping rows	
+    register double * tmp_row = (double *)malloc(size_n);
 
-					/*Save Pivot Infortmation*/
-					temps = ipiv[i];
-					ipiv[i] = ipiv[maxind];
-					ipiv[maxind] = temps;
-					/*Swap rows*/
-					for(j = 0; j < n; j++)
-					{
-						double tempv;
-						tempv = A[i * n + j];
-						A[i * n + j] = A[maxind * n + j];
-						A[maxind * n + j] = tempv;
-					}
-				}
+    // finish LU factorization		
+    for (ib = 0; ib < n; ib += b)
+    {
+	ib2 = ib + b;    
+	n1 = ib2 > n ? n : ib2;   
+        for (i = ib; i < n1; i++)
+        {
+            max_index = i;
+	    in = i * n;
+            max = fabs(A[in + i]);
+            
+            for (j = i + 1; j < n; j++)
+            {
+		tmp1 = fabs(A[j * n + i]);    
+                if (tmp1 > max)
+                {
+                    max_index = j;
+                    max = tmp1;
+                }
+            }
+            
+            // if the matrix is singular
+            if (max == 0)
+            {
+		perror("LU factorization failed: coefficient matrix is singular.\n");
+                return -1;
+            }
+            else
+            {    
+                if (max_index != i)
+                {
+                    tmp2 = ipiv[i];
+                    ipiv[i] = ipiv[max_index];
+                    ipiv[max_index] = tmp2;    	
+                    // swap rows
+		    maxn = max_index * n;	
+                    memcpy(tmp_row, A + in, size_n);
+                    memcpy(A + in, A + maxn, size_n);
+                    memcpy(A + maxn, tmp_row, size_n);
+                }
+            }
 
-				/*Update columns i+1 to end*/
-				for(j = i + 1; j < n; j++)
-				{
-					A[j * n + i] = (double)A[j * n + i] / A[i * n + i];
-					for(t = i + 1;t <= end; t++)
-					{
-						A[j*n+t] = A[j*n+t] - A[j*n+i] * A[i*n+t];
-					}
-				}
-			}
+            for (j = i + 1; j < n; j++)
+            {
+		jn = j * n;    
+                A[jn + i] = A[jn + i] / A[in + i];
+                  
+                for (k = i + 1; k < n1; k++)
+                {
+                    A[jn + k] -= A[jn + i] * A[in + k];
+                }
+            }
+        }
 
-			/*inv(LL)*/
-			/*double y;y = (double *) malloc(sizeof(double) * (end - ib + 1) * (n - end));y[0] =; */
-			for(i = ib; i <= end; i++)
-			{
-				for(k = end +1; k < n; k++)
-				{
-					double sum = 0;
-					for(j = ib; j < i; j++)
-					{
-						sum += A[i * n + j] * A [j * n + k];
-					}
-					A[i * n + k] -= sum;
-				}
-			}
-			/*Delayed update of rest of matrix using matrix-matrix multiplication*/
-			/*void mydgemm(double *A, double *B, double *C, int n, int matx, int maty, int b)*/
-			//if(end!=n)
-			mydgemm(&A[(end+1) * n + ib], &A[ib * n + end +1], &A[(end+1) * n + (end + 1)], n , (n - end - 1) , (end-ib+1/*=b*/), 32);
-		}	
+        // A(ib:end, end+1:n) = LL-1 * A(ib:end, end+1:n)
+        for (i = ib; i < n1; i++)
+        {
+	    in = i * n;	
+            for (j = ib2; j < n; j++)
+            {
+                sum = 0;
+                for (k = ib; k < i; k++)
+                {
+                    sum += A[in + k] * A[k * n + j];
+                }
+                A[in + j] -= sum;
+            }
+        }
 
+        // A(end+1:n, end+1:n) -= A(end+1:n, ib:end) * A(ib:end, end+1:n)
+        for (i = ib2; i < n; i += b)
+        {
+            for (j = ib2; j < n; j += b)
+            {
+                mydgemm(A, A, A, n, i, j, ib, b);
+            }
+        }
+    }
+    free(tmp_row);
     return 0;
 }
