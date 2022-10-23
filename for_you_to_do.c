@@ -163,63 +163,113 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
     /* In fact this function won't be directly called in the tester code, so you can modify the declaration (parameter list) of mydgemm() if needed. 
     /* you may copy the code from the optimal() function or any of the other functions in your lab1 code (optimized code recommended).*/
     /* add your code here */
-    register int i1, j1, k1; 
-    // used for optimizing	  
-    register int in1, in2, in3, j2, j3, kn;	
-    register int n1 = i + b > n ? n : i + b;
-    register int n2 = j + b > n ? n : j + b;
-    register int n3 = k + b > n ? n : k + b;
+    int ic,jc,kc,i1,j1,k1;
+    register int m;
+    int block_size = 3;
 
-    for (i1 = i; i1 < n1; i1 += 3)
-    {
-        for (j1 = j; j1 < n2; j1 += 3)
-        {
-	    in1 = i1 * n;
-	    in2 = (i1 + 1) * n;
-	    in3 = (i1 + 2) * n;
-	    j2 = j1 + 1;
-	    j3 = j1 + 2;	
-            register double C_0_0 = C[in1 + j1];
-            register double C_0_1 = C[in1 + j2];
-            register double C_0_2 = C[in1 + j3];
-            register double C_1_0 = C[in2 + j1];
-            register double C_1_1 = C[in2 + j2];
-            register double C_1_2 = C[in2 + j3];
-            register double C_2_0 = C[in3 + j1];
-            register double C_2_1 = C[in3 + j2];
-            register double C_2_2 = C[in3 + j3];
-		
-	    for (k1 = k; k1 < n3; k1++)
-            {
-		kn = k1 * n + j1;    
-                register double A_0 = A[in1 + k1];
-                register double A_1 = A[in2 + k1];
-                register double A_2 = A[in3 + k1];
-                register double B_0 = B[kn];
-                register double B_1 = B[kn + 1];
-                register double B_2 = B[kn + 2];
 
-                C_0_0 -= A_0 * B_0;
-                C_0_1 -= A_0 * B_1;
-                C_0_2 -= A_0 * B_2;
-                C_1_0 -= A_1 * B_0;
-                C_1_1 -= A_1 * B_1;
-                C_1_2 -= A_1 * B_2;
-                C_2_0 -= A_2 * B_0;
-                C_2_1 -= A_2 * B_1;
-                C_2_2 -= A_2 * B_2;
+    for(i1 = i; i1 < n; i1 += b){
+
+        for(j1 = j;j1 < n; j1 += b){
+
+            for(k1 = k; k1 < k + b; k1 += b){
+
+
+
+
+                for (ic=i1; ic<(i1 + b); ic+=block_size){
+
+
+                    for (jc=j1; jc<(j1 + b); jc+=block_size) {
+
+
+
+
+                        //9 register used for matrix C
+                        register double c00 = C[ic * n + jc];
+                        register double c01 = C[ic * n + (jc + 1)];
+                        register double c02 = C[ic * n + (jc + 2)];
+
+                        register double c10 = C[(ic + 1) * n + jc];
+                        register double c11 = C[(ic + 1) * n + (jc + 1)];
+                        register double c12 = C[(ic + 1) * n + (jc + 2)];
+
+                        register double c20 = C[(ic + 2) * n + jc];
+                        register double c21 = C[(ic + 2) * n + (jc + 1)];
+                        register double c22 = C[(ic + 2) * n + (jc + 2)];
+
+                        // double test = c00 + c01 + c02 + c10 + c11 + c12 + c20 + c21 + c22;
+
+                        // printf("test = %f", test);
+
+
+                        //6 registers INIT for A and B matrix
+                        register double a00;
+                        register double a10;
+                        register double a20;
+                        // register double a30;
+
+                        register double b00;
+                        register double b01;
+                        register double b02;
+                        // register double b03;
+
+                        for (kc=k1; kc<(k1 + b); kc+=block_size){
+
+
+                            //use for debug
+
+                            // if(kc >= n){
+                            //     printf("kc error\n");
+                            //     printf("i1 = %i, j1 = %i, k1 = %i, ic = %i, jc = %i, kc = %i\n",i1,j1,k1,ic,jc,kc);
+                            //     return;
+                            // }
+
+
+                            for(m = 0; m < block_size; m++){
+
+
+                                
+                                a00 = A[ic * n + kc + m];
+                                a10 = A[(ic + 1)*n + kc + m];
+                                a20 = A[(ic + 2)*n + kc + m];
+
+                                b00 = B[(kc + m) * n + (jc)];
+                                b01 = B[(kc + m) * n + (jc + 1)];
+                                b02 = B[(kc + m) * n + (jc + 2)];
+
+                                //Start doing the computing process
+                                c00 -= a00 * b00;
+                                c01 -= a00 * b01;
+                                c02 -= a00 * b02;
+                                c10 -= a10 * b00;
+                                c11 -= a10 * b01;
+                                c12 -= a10 * b02;
+                                c20 -= a20 * b00;
+                                c21 -= a20 * b01;
+                                c22 -= a20 * b02;
+                            }
+                            
+
+                        }
+                        //Write back the value to matrix C
+                        C[ic * n + jc] = c00;
+                        C[ic * n + (jc + 1)] = c01;
+                        C[ic * n + (jc + 2)] = c02;
+
+                        C[(ic + 1) * n + jc] = c10;
+                        C[(ic + 1) * n + (jc + 1)] = c11;
+                        C[(ic + 1) * n + (jc + 2)] = c12;
+
+                        C[(ic + 2) * n + jc] = c20;
+                        C[(ic + 2) * n + (jc + 1)] = c21;
+                        C[(ic + 2) * n + (jc + 2)] = c22;
+
+                    }
+                }
+
             }
-		
-            C[in1 + j1] = C_0_0;
-            C[in1 + j2] = C_0_1;
-            C[in1 + j3] = C_0_2;
-            C[in2 + j1] = C_1_0;
-            C[in2 + j2] = C_1_1;
-            C[in2 + j3] = C_1_2;    
-            C[in3 + j1] = C_2_0;
-            C[in3 + j2] = C_2_1;
-            C[in3 + j3] = C_2_2;
-    	}	
+        }
     }
     return;
 }
