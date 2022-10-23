@@ -163,7 +163,7 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
     /* In fact this function won't be directly called in the tester code, so you can modify the declaration (parameter list) of mydgemm() if needed. 
     /* you may copy the code from the optimal() function or any of the other functions in your lab1 code (optimized code recommended).*/
     /* add your code here */
-    	int i , j , k , iB, jB , kB;
+    	int  iB, jB , kB;
         for( k = 0;k < maty ; k += b)
                 for( i = 0;i < matx;i += b)
                         for( j = 0;j < matx ;j += b)
