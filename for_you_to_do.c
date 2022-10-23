@@ -179,14 +179,11 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
                 register double C_11 = C[rc2+1];
 
 
-                C_00 =C_00 - ( A_00 * B_00 + A_01 * B_10);
-                C_01 =C_01 (A_00 * B_01 + A_01 * B_11);
-                C_10 =C_10 (A_10 * B_00 + A_11 * B_10);
-                C_11 =C_11 (A_10 * B_01 + A_11 * B_11);
-                C[rc1] = C_00;
-                C[rc1+1] = C_01;
-                C[rc2] = C_10;
-                C[rc2+1] = C_11;
+
+                C[rc1] = C_00 - ( A_00 * B_00 + A_01 * B_10);
+                C[rc1+1] = C_01 - (A_00 * B_01 + A_01 * B_11);
+                C[rc2] = C_10 - (A_10 * B_00 + A_11 * B_10);
+                C[rc2+1] = C_11 - (A_10 * B_01 + A_11 * B_11);
             }
         }
     }
@@ -234,7 +231,7 @@ int mydgetrf_block(double *A, int *ipiv, int n, int b) {
                 }
             }
 
-            if(max ==0){return -1}
+            if(max ==0){return -1;}
             for (j = i+1; j < n; j++) {
                 A[j*n + i] = A[j*n + i] / A[i*n + i];
                 for (k = i+1; k < temp_i+b; k++) {
