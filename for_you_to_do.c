@@ -254,92 +254,116 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
  **/
 int mydgetrf_block(double *A, int *ipiv, int n, int b) 
 {
-        register int ib, i, j, k, max_index, tmp2;
-    register double max, tmp1, sum;	
-    // used for optimizing
-    register int ib2, n1, in, maxn, jn; 	
-    register int size_n = sizeof(double) * n;
-    // used for swapping rows	
-    register double * tmp_row = (double *)malloc(size_n);
+    int i,j,k,ic,t, maxind;
+    double max;
 
-    // finish LU factorization		
-    for (ib = 0; ib < n; ib += b)
-    {
-	ib2 = ib + b;    
-	n1 = ib2 > n ? n : ib2;   
-        for (i = ib; i < n1; i++)
-        {
-            max_index = i;
-	    in = i * n;
-            max = fabs(A[in + i]);
-            
-            for (j = i + 1; j < n; j++)
-            {
-		tmp1 = fabs(A[j * n + i]);    
-                if (tmp1 > max)
-                {
-                    max_index = j;
-                    max = tmp1;
+    for(ic = 0; ic <n - 1;ic +=b){
+        // if(ic > n){
+        //     printf("error in ic\n\n\n");
+        // }
+
+        for(i = ic; i < ic+b ; i++){
+            // if(i > n){
+            //     printf("error in i\n\n\n");
+            // }
+
+            // pivoting the matrix to find the maximum number
+            maxind = i;
+            max = fabs(A[i*n + i]);
+            for(t = i+1; t < n; t++){
+
+                if(fabs(A[t*n + i]) > max){
+                    maxind = t;
+                    max = fabs(A[t*n + i]);
                 }
             }
+
             
-            // if the matrix is singular
-            if (max == 0)
-            {
-		perror("LU factorization failed: coefficient matrix is singular.\n");
+            if(max == 0){
+                printf("LU factoration failed: coefficient matrix is singular");
                 return -1;
             }
-            else
-            {    
-                if (max_index != i)
-                {
-                    tmp2 = ipiv[i];
-                    ipiv[i] = ipiv[max_index];
-                    ipiv[max_index] = tmp2;    	
-                    // swap rows
-		    maxn = max_index * n;	
-                    memcpy(tmp_row, A + in, size_n);
-                    memcpy(A + in, A + maxn, size_n);
-                    memcpy(A + maxn, tmp_row, size_n);
+            else{
+
+                //The case that need to swap the row
+                if(maxind != i){
+                    //swap pivoting information
+                    int temps= ipiv[i];
+                    ipiv[i] = ipiv[maxind];
+                    ipiv[maxind] = temps;
+
+                    //swap row for matrix method 1
+                    // int j;
+                    // for(j = 0; j < n; j++){
+                    //     double k;
+                    //     k = A[i * n + j];
+                    //     A[i * n + j] = A[maxind * n + j];
+                    //     A[maxind * n + j] = k;
+                    // }
+
+                    //swap row method 2 -- seem like not too much difference than method one, but this look a bit cleaner
+                    double trow[n];
+                    memcpy(trow, A + i * n, n*sizeof(double));
+                    memcpy(A + i * n, A + maxind * n, n*sizeof(double));
+                    memcpy(A + maxind * n, trow, n*sizeof(double));
                 }
+
             }
 
-            for (j = i + 1; j < n; j++)
-            {
-		jn = j * n;    
-                A[jn + i] = A[jn + i] / A[in + i];
-                  
-                for (k = i + 1; k < n1; k++)
-                {
-                    A[jn + k] -= A[jn + i] * A[in + k];
+            //update the lower triangle of A(ic:end , ic:end) and A(end+1:n , ic:end)
+            for(j = i + 1; j <n;j++){
+                // if(j > n){
+                //     printf("error in j\n\n\n");
+                // }
+
+                A[j*n + i] = A[j*n + i] / A[i*n + i];
+
+                //block version
+                for(k = i + 1; k < ic + b; k++){
+
+                    A[j*n + k] -= A[j*n + i] * A[i*n + k];
                 }
+
+                //naive version - to test the top part of the code work
+                // for(k = i + 1; k < n; k++){
+                //     A[j*n + k] = A[j*n + k] - A[j*n + i] * A[i*n + k];
+                // }
             }
         }
 
-        // A(ib:end, end+1:n) = LL-1 * A(ib:end, end+1:n)
-        for (i = ib; i < n1; i++)
-        {
-	    in = i * n;	
-            for (j = ib2; j < n; j++)
-            {
-                sum = 0;
-                for (k = ib; k < i; k++)
-                {
-                    sum += A[in + k] * A[k * n + j];
+
+        //update A(ic:end, end+1:n), basically same method as before, use the value store in A(ic:n, ic:end)
+        register double total;
+        //end = ic + b
+        for(i = ic; i < ic + b; i++){
+            // if(i > n){
+            //     printf("error in i\n\n\n");
+            // }
+
+            for(j= ic + b;j < n;j++){
+                // if(j > n){
+                //     printf("error in j\n\n\n");
+                // }
+
+                total = 0;
+                for(k = ic; k < i; k++){
+                    // if(k > n){
+                    //     printf("error in k\n\n\n");
+                    // }
+
+                    //naive version, abandon
+                    // A[i*n - j] -= A[i*n + k] * A[k*n + j];
+
+                    //new version, reduce access element
+                    total += A[i*n + k] * A[k*n + j];
                 }
-                A[in + j] -= sum;
+                A[i*n + j] -= total;
             }
         }
 
-        // A(end+1:n, end+1:n) -= A(end+1:n, ib:end) * A(ib:end, end+1:n)
-        for (i = ib2; i < n; i += b)
-        {
-            for (j = ib2; j < n; j += b)
-            {
-                mydgemm(A, A, A, n, i, j, ib, b);
-            }
-        }
+        // update A(end + 1: n , end + 1 : n)
+        // end = ic + b
+        mydgemm(A, A, A,n, ic + b, ic + b, ic, b);
     }
-    free(tmp_row);
-    return 0;
+return 0;
 }
