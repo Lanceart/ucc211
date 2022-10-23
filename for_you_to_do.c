@@ -155,122 +155,53 @@ int get_block_size(){
 
 //The matrix multiplication function used in blocked GEPP.
 // You need to let the mydgemm adapt to non-square inputs.
-void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
-{
-    int ic,jc,kc,i1,j1,k1;
-    register int m;
-    int block_size = 3;
+void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b) {
+    /* add your code here */
+    /* please just copy from your lab1 function optimal( ... ) */
+    int i1, j1, k1;
 
-
-    for(i1 = i; i1 < n; i1 += b){
-
-        for(j1 = j;j1 < n; j1 += b){
-
-            for(k1 = k; k1 < k + b; k1 += b){
-
-
-
-
-                for (ic=i1; ic<(i1 + b); ic+=block_size){
-
-
-                    for (jc=j1; jc<(j1 + b); jc+=block_size) {
-
-
-
-
-                        //9 register used for matrix C
-                        register double c00 = C[ic * n + jc];
-                        register double c01 = C[ic * n + (jc + 1)];
-                        register double c02 = C[ic * n + (jc + 2)];
-
-                        register double c10 = C[(ic + 1) * n + jc];
-                        register double c11 = C[(ic + 1) * n + (jc + 1)];
-                        register double c12 = C[(ic + 1) * n + (jc + 2)];
-
-                        register double c20 = C[(ic + 2) * n + jc];
-                        register double c21 = C[(ic + 2) * n + (jc + 1)];
-                        register double c22 = C[(ic + 2) * n + (jc + 2)];
-
-                        // double test = c00 + c01 + c02 + c10 + c11 + c12 + c20 + c21 + c22;
-
-                        // printf("test = %f", test);
-
-
-                        //6 registers INIT for A and B matrix
-                        register double a00;
-                        register double a10;
-                        register double a20;
-                        // register double a30;
-
-                        register double b00;
-                        register double b01;
-                        register double b02;
-                        // register double b03;
-
-                        for (kc=k1; kc<(k1 + b); kc+=block_size){
-
-
-                            //use for debug
-
-                            // if(kc >= n){
-                            //     printf("kc error\n");
-                            //     printf("i1 = %i, j1 = %i, k1 = %i, ic = %i, jc = %i, kc = %i\n",i1,j1,k1,ic,jc,kc);
-                            //     return;
-                            // }
-
-
-                            for(m = 0; m < block_size; m++){
-
-
-                                
-                                a00 = A[ic * n + kc + m];
-                                a10 = A[(ic + 1)*n + kc + m];
-                                a20 = A[(ic + 2)*n + kc + m];
-
-                                b00 = B[(kc + m) * n + (jc)];
-                                b01 = B[(kc + m) * n + (jc + 1)];
-                                b02 = B[(kc + m) * n + (jc + 2)];
-
-                                //Start doing the computing process
-                                c00 -= a00 * b00;
-                                c01 -= a00 * b01;
-                                c02 -= a00 * b02;
-                                c10 -= a10 * b00;
-                                c11 -= a10 * b01;
-                                c12 -= a10 * b02;
-                                c20 -= a20 * b00;
-                                c21 -= a20 * b01;
-                                c22 -= a20 * b02;
-                            }
-                            
-
-                        }
-                        //Write back the value to matrix C
-                        C[ic * n + jc] = c00;
-                        C[ic * n + (jc + 1)] = c01;
-                        C[ic * n + (jc + 2)] = c02;
-
-                        C[(ic + 1) * n + jc] = c10;
-                        C[(ic + 1) * n + (jc + 1)] = c11;
-                        C[(ic + 1) * n + (jc + 2)] = c12;
-
-                        C[(ic + 2) * n + jc] = c20;
-                        C[(ic + 2) * n + (jc + 1)] = c21;
-                        C[(ic + 2) * n + (jc + 2)] = c22;
-
-                    }
-                }
-
+    for (i1 = i; i1 < i+b; i1 += 2) {
+        for (k1 = k; k1 < k+b; k1 += 2) {
+            // reg for A
+            register int ra1 = i1*n + k1;// A[i1, k1]
+            register int ra2 = ra1 + n;// A[(i1+1), k1]
+            register double a00 = A[ra1];// A[i1, k1]
+            register double a01 = A[ra1+1];// A[i1, k1+1]
+            register double a10 = A[ra2];// A[(i1+1), k1]
+            register double a11 = A[ra2+1];// A[(i1+1), (k1+1)]
+            for (j1 = j; j1 < j+b; j1 += 2) {
+                // reg for C
+                register int rc1 = i1*n + j1;// C[i1, j1]
+                register int rc2 = rc1 + n;// C[i1+1, j1]
+                register double c00 = C[rc1];// C[i1, j1]
+                register double c01 = C[rc1+1];// C[i1, j1+1]
+                register double c10 = C[rc2];// C[i1+1, j1]
+                register double c11 = C[rc2+1];// C[i1+1, j1+1]
+                // reg for B
+                register int rb1 = k1*n + j1;// B[k1, j1]
+                register int rb2 = rb1 + n;// B[(k1+1), j1]
+                register double b00 = B[rb1];// B[k1, j1]
+                register double b01 = B[rb1+1];// B[k1, j1+1]
+                register double b10 = B[rb2];// B[(k1+1), j1]
+                register double b11 = B[rb2+1];// B[k1+1, j1+1]
+                // calculate C
+                c00 -= a00 * b00 + a01 * b10;
+                c01 -= a00 * b01 + a01 * b11;
+                c10 -= a10 * b00 + a11 * b10;
+                c11 -= a10 * b01 + a11 * b11;
+                C[rc1] = c00;
+                C[rc1+1] = c01;
+                C[rc2] = c10;
+                C[rc2+1] = c11;
             }
         }
     }
-    return;
 }
+
 
 /**
  * 
- * this function computes triangular matrix - vector solver
+ * this function computes LU decomposition
  * for a square matrix using block gepp introduced in course
  * lecture .
  * 
@@ -283,136 +214,74 @@ void mydgemm(double *A, double *B, double *C, int n, int i, int j, int k, int b)
  * 
  *      A     n by n     , square matrix
  * 
- *      B     1 by n     , vector
- * 
  *      ipiv  1 by n     , vector , denotes interchanged index due
  *                                  to pivoting by mydgetrf()
  * 
  *      n                , length of vector / size of matrix
- *  
+ *     
+ *      b                , block size   
  *  output :
  *      return -1 : if the matrix A is singular (max pivot == 0)
  *      return  0 : return normally 
  * 
  **/
-int mydgetrf_block(double *A, int *ipiv, int n, int b) 
-{
-
-    /* add your code here */
-
-    int i,j,k,ic,t, maxind;
+int mydgetrf_block(double *A, int *ipiv, int n, int b) {
+    int i, j, k;
+    int max_Aii;
+    int ib;
     double max;
-
-    for(ic = 0; ic <n - 1;ic +=b){
-        // if(ic > n){
-        //     printf("error in ic\n\n\n");
-        // }
-
-        for(i = ic; i < ic+b ; i++){
-            // if(i > n){
-            //     printf("error in i\n\n\n");
-            // }
-
-            // pivoting the matrix to find the maximum number
-            maxind = i;
+    double* temp_Aii = (double*)malloc(n * sizeof(double)); // a temp row for swap
+    
+    for (ib = 0;ib < n;ib += b) {
+        for (i = ib; i < ib+b; i++) {
             max = fabs(A[i*n + i]);
-            for(t = i+1; t < n; t++){
-
-                if(fabs(A[t*n + i]) > max){
-                    maxind = t;
-                    max = fabs(A[t*n + i]);
+            max_Aii = i;
+            for (j = i+1;j < n;j++) {
+                if ( fabs(A[j*n + i]) > max ) {
+                    max = fabs(A[j*n + i]);
+                    max_Aii = j; // |A[j,i]| is the biggest in rest of i-th col
                 }
             }
-
-            
-            if(max == 0){
-                printf("LU factoration failed: coefficient matrix is singular");
+            // swap row i and max_Aii and the corrosponding vector
+            if (max == 0) {
                 return -1;
-            }
-            else{
-
-                //The case that need to swap the row
-                if(maxind != i){
-                    //swap pivoting information
-                    int temps= ipiv[i];
-                    ipiv[i] = ipiv[maxind];
-                    ipiv[maxind] = temps;
-
-                    //swap row for matrix method 1
-                    // int j;
-                    // for(j = 0; j < n; j++){
-                    //     double k;
-                    //     k = A[i * n + j];
-                    //     A[i * n + j] = A[maxind * n + j];
-                    //     A[maxind * n + j] = k;
-                    // }
-
-                    //swap row method 2 -- seem like not too much difference than method one, but this look a bit cleaner
-                    double trow[n];
-                    memcpy(trow, A + i * n, n*sizeof(double));
-                    memcpy(A + i * n, A + maxind * n, n*sizeof(double));
-                    memcpy(A + maxind * n, trow, n*sizeof(double));
+            } else {
+                if (max_Aii != i) { 
+                    // swap i-th and max_Aii-th element of vector pivot
+                    int temp = ipiv[i];
+                    ipiv[i] = ipiv[max_Aii];
+                    ipiv[max_Aii] = temp;
+                    // swap i-th row and max_Aii-th row
+                    memcpy(temp_Aii, A + i*n, n*sizeof(double));
+                    memcpy(A + i*n, A + max_Aii*n, n*sizeof(double));
+                    memcpy(A + max_Aii*n, temp_Aii, n*sizeof(double));
                 }
-
             }
-
-            //update the lower triangle of A(ic:end , ic:end) and A(end+1:n , ic:end)
-            for(j = i + 1; j <n;j++){
-                // if(j > n){
-                //     printf("error in j\n\n\n");
-                // }
-
+            for (j = i+1; j < n; j++) {
                 A[j*n + i] = A[j*n + i] / A[i*n + i];
-
-                //block version
-                for(k = i + 1; k < ic + b; k++){
-
+                for (k = i+1; k < ib+b; k++) {
                     A[j*n + k] -= A[j*n + i] * A[i*n + k];
                 }
-
-                //naive version - to test the top part of the code work
-                // for(k = i + 1; k < n; k++){
-                //     A[j*n + k] = A[j*n + k] - A[j*n + i] * A[i*n + k];
-                // }
             }
         }
-
-
-        //update A(ic:end, end+1:n), basically same method as before, use the value store in A(ic:n, ic:end)
-        register double total;
-        //end = ic + b
-        for(i = ic; i < ic + b; i++){
-            // if(i > n){
-            //     printf("error in i\n\n\n");
-            // }
-
-            for(j= ic + b;j < n;j++){
-                // if(j > n){
-                //     printf("error in j\n\n\n");
-                // }
-
-                total = 0;
-                for(k = ic; k < i; k++){
-                    // if(k > n){
-                    //     printf("error in k\n\n\n");
-                    // }
-
-                    //naive version, abandon
-                    // A[i*n - j] -= A[i*n + k] * A[k*n + j];
-
-                    //new version, reduce access element
-                    total += A[i*n + k] * A[k*n + j];
+        // A(ib:end , end+1:n) = LL-1 * A(ib:end , end+1:n), update next b rows of U
+        for (i = ib; i < ib+b; i++) {
+            for (j = ib+b;j < n;j++) { // j:[end+1=ib+b-1+1, n]
+                double sum = 0.0;
+                for (k = ib;k < i;k++) {
+                    sum += A[i*n + k] * A[k*n + j];
                 }
-                A[i*n + j] -= total;
+                A[i*n + j] -= sum;
             }
         }
 
-        // update A(end + 1: n , end + 1 : n)
-        // end = ic + b
-        mydgemm(A, A, A,n, ic + b, ic + b, ic, b);
+        // update A(end+1=ib+b-1+1 : n, end+1:n) block by block
+        for (i = ib+b;i < n;i+=b) {
+            for (j = ib+b;j < n;j+=b) {
+                mydgemm(A, A, A, n, i, j, ib, b);
+            }
+        }
     }
-
-    
 
     return 0;
 }
