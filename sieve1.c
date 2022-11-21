@@ -44,77 +44,50 @@ int main (int argc, char *argv[])
    /* Add you code here  */
    
 
-    low_value = 2 + BLOCK_LOW(pid, psize, n-1);
-    high_value = 2 + BLOCK_HIGH(pid, psize, n-1);
-    // size = BLOCK_SIZE(pid, psize, n-1);
-    low_value = low_value + (low_value + 1) % 2;
-    high_value = high_value - (high_value + 1) % 2;
-    size = (high_value - low_value) / 2 + 1;
-    
-    /**
-     * process 0 must holds all primes used
-     */
-    proc0_size = (n/2 - 1) / psize;
-    if ((2 + proc0_size) < (int) sqrt((double) n/2))
-    {
-        if (pid == 0)
-            printf("Too many processes.\n");
-        MPI_Finalize();
-        exit(1);
-    }
-
-    /**
-     * Allocation
-     */
-    marked = (char*) malloc(size);
-    if (marked == NULL)
-    {
-        printf("PID: %d - Cannot allocate enough memory.\n", pid);
-        MPI_Finalize();
-        exit(1);
-    }
-    for (i = 0; i < size; i++)
-        marked[i] = 0;
-
-    /**
-     * Core Function
-     */
-    if (pid == 0)
-        index = 0;
-    prime = 3;
-    
-    do
-    {
-        if (prime * prime > low_value)
-            first = (prime * prime - low_value) / 2;
-        else
-        {
-            if ((low_value % prime) == 0)
-                first = 0;
-            else
-                first = (prime - (low_value % prime) + low_value / prime % 2 * prime) / 2;
-        }
-        for (i = first; i < size; i += prime)
-            marked[i] = 1;
-        if (pid == 0)
-        {
-            while(marked[++index] == 1);
-            prime = 3 + index * 2;
-        }
-        if (psize > 1)
-            MPI_Bcast(&prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    } while (prime * prime <= n);
-    count = 0;
-    for (i = 0; i < size; i++)
-        if (marked[i] == 0)
-            count++;
-    if (pid == 0)
-        count++;    // 2
-    if (psize > 1)
-        MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-
-
+  low_value = 3 + 2 * (unsigned long long int)(id * ((n - 1) / 2) / p);
+  high_value = 1 + 2 * (unsigned long long int)((id + 1) * ((n - 1) / 2) / p);
+  size = (high_value - low_value) / 2 + 1;
+  proc0_size = (n - 1) / 2 / p;
+   if ((3 + 2 * proc0_size) < (unsigned long long int) sqrt((double) n)) {
+      if (!id) printf("Too many processes\n");
+      MPI_Finalize();
+      exit(1);
+   }
+   marked = (char *) malloc(size);
+   if (marked == NULL) {
+      printf("Cannot allocate enough memory\n");
+      MPI_Finalize();
+      exit(1);
+   }
+   for (i = 0; i < size; i++) marked[i] = 0;
+   if (!id) index = 0;
+   prime = 3; 
+   do {
+      if (prime * prime > low_value) {
+         first = (prime * prime - low_value) / 2;
+      } else {
+         if (!(low_value % prime)) {
+               first = 0;
+         } else {
+               if ((prime - (low_value % prime)) % 2 == 0) {
+                  first = (prime - (low_value % prime)) / 2;
+               } else {
+                  first = (prime * 2 - (low_value % prime)) / 2;
+               }
+         }
+      }
+      for (i = first; i < size; i += prime) marked[i] = 1;
+      while (marked[++index]);
+      prime = index * 2 + 3;  
+      if (p > 1) MPI_Bcast(&prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
+   } while (prime * prime <= n);
+   count = 0;
+   for (i = 0; i < size; i++)
+      if (!marked[i]) count++;
+   if (p > 1)
+      MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM,0, MPI_COMM_WORLD);
+   
+   
 
 
    /* Stop the timer */
