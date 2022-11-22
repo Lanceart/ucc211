@@ -55,6 +55,8 @@ int main (int argc, char *argv[])
 
 
    /* Add you code here  */
+   long long int B = 100000;
+   long long int j;
    long long int l_size;
    long long int l_first;
    char* l_marked;
@@ -82,8 +84,6 @@ int main (int argc, char *argv[])
    for (i = 0; i < size; i++) marked[i] = 0;
    for (i = 0; i < l_size; i++) l_marked[i] = 0;
 
-   unsigned long int B = 100000;
-   unsigned long int j;
    for (i = 0; i < size; i+= B) {
       index = 0;
       prime = 3; 
@@ -122,21 +122,6 @@ int main (int argc, char *argv[])
    /* Stop the timer */
 
    elapsed_time += MPI_Wtime();
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
    /* Print the results */
 
    if (!id) {

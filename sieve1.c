@@ -48,7 +48,9 @@ int main (int argc, char *argv[])
   high_value = 1 + 2 * (unsigned long long int)((id + 1) * ((n - 1) / 2) / p);
   size = (high_value - low_value) / 2 + 1;
   proc0_size = (n - 1) / 2 / p;
-   if ((3 + 2 * proc0_size) < (unsigned long long int) sqrt((double) n)) {
+  
+
+ if ((3 + 2 * proc0_size) < (unsigned long long int) sqrt((double) n)) {
       if (!id) printf("Too many processes\n");
       MPI_Finalize();
       exit(1);
@@ -84,6 +86,8 @@ int main (int argc, char *argv[])
    count = 0;
    for (i = 0; i < size; i++)
       if (!marked[i]) count++;
+
+
    if (p > 1)
       MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM,0, MPI_COMM_WORLD);
    

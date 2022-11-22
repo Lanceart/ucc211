@@ -72,7 +72,7 @@ int main (int argc, char *argv[])
       MPI_Finalize();
       exit(1);
    }
-
+//distinct parallel
    marked = (char *) malloc(size);
    l_marked = (char *) malloc(l_size);
    if (marked == NULL || l_marked == NULL) {
@@ -83,7 +83,7 @@ int main (int argc, char *argv[])
    for (i = 0; i < size; i++) marked[i] = 0;
    for (i = 0; i < l_size; i++) l_marked[i] = 0;
 
-   prime = 3; // here we skip the number "2"
+   prime = 3; 
    do {
          if (prime * prime > low_value)
             first = (prime * prime - low_value) / 2;
